@@ -1,0 +1,538 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Anytype REST API Shim",
+    "description": "REST API wrapper for Anytype Heart gRPC service",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Anytype REST Shim",
+      "url": "https://github.com/anyproto/anytype-heart"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000",
+      "description": "Local development server"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health check",
+        "description": "Check if the REST shim service is running",
+        "operationId": "healthCheck",
+        "tags": ["Health"],
+        "responses": {
+          "200": {
+            "description": "Service is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "service": {
+                      "type": "string",
+                      "example": "anytype-rest-shim"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/app/version": {
+      "get": {
+        "summary": "Get application version",
+        "description": "Retrieve version information from Anytype Heart",
+        "operationId": "getAppVersion",
+        "tags": ["Application"],
+        "responses": {
+          "200": {
+            "description": "Application version information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "version": {
+                      "type": "string",
+                      "description": "Application version"
+                    },
+                    "build": {
+                      "type": "string",
+                      "description": "Build information"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/workspaces": {
+      "get": {
+        "summary": "List all workspaces",
+        "description": "Retrieve all available workspaces",
+        "operationId": "getWorkspaces",
+        "tags": ["Workspaces"],
+        "responses": {
+          "200": {
+            "description": "List of workspaces",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "workspaces": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Workspace"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/objects": {
+      "get": {
+        "summary": "Search objects",
+        "description": "Search and list objects with optional filters and pagination",
+        "operationId": "searchObjects",
+        "tags": ["Objects"],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of objects to return",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "default": 50
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Number of objects to skip",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of objects matching search criteria",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "objects": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Object"
+                      }
+                    },
+                    "total": {
+                      "type": "integer",
+                      "description": "Total number of objects available"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a new object",
+        "description": "Create a new object with specified details and type",
+        "operationId": "createObject",
+        "tags": ["Objects"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateObjectRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Object created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateObjectResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/objects/{id}": {
+      "get": {
+        "summary": "Get object by ID",
+        "description": "Retrieve a specific object by its ID",
+        "operationId": "getObjectById",
+        "tags": ["Objects"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Object ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Object details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Object"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update object",
+        "description": "Update an existing object's details",
+        "operationId": "updateObject",
+        "tags": ["Objects"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Object ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateObjectRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Object updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateObjectResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete object",
+        "description": "Delete an object by its ID",
+        "operationId": "deleteObject",
+        "tags": ["Objects"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Object ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Object deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteObjectResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Object": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique object identifier"
+          },
+          "type": {
+            "type": "string",
+            "description": "Object type"
+          },
+          "details": {
+            "type": "object",
+            "description": "Object details and properties",
+            "additionalProperties": true
+          },
+          "blocks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Block"
+            },
+            "description": "Object content blocks"
+          },
+          "createdDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Object creation date"
+          },
+          "modifiedDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Object last modification date"
+          }
+        }
+      },
+      "Block": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Block identifier"
+          },
+          "type": {
+            "type": "string",
+            "description": "Block type (text, image, file, etc.)"
+          },
+          "content": {
+            "type": "object",
+            "description": "Block content",
+            "additionalProperties": true
+          }
+        }
+      },
+      "Workspace": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Workspace identifier"
+          },
+          "name": {
+            "type": "string",
+            "description": "Workspace name"
+          },
+          "info": {
+            "type": "object",
+            "description": "Workspace information",
+            "additionalProperties": true
+          }
+        }
+      },
+      "CreateObjectRequest": {
+        "type": "object",
+        "properties": {
+          "objectTypeUrl": {
+            "type": "string",
+            "description": "Object type URL identifier",
+            "example": "ot-note"
+          },
+          "details": {
+            "type": "object",
+            "description": "Object details and properties",
+            "additionalProperties": true,
+            "example": {
+              "name": "My New Note",
+              "description": "A sample note object"
+            }
+          },
+          "templateId": {
+            "type": "string",
+            "description": "Template ID to use for object creation"
+          }
+        }
+      },
+      "CreateObjectResponse": {
+        "type": "object",
+        "properties": {
+          "objectId": {
+            "type": "string",
+            "description": "ID of the created object"
+          },
+          "details": {
+            "type": "object",
+            "description": "Created object details",
+            "additionalProperties": true
+          }
+        }
+      },
+      "UpdateObjectRequest": {
+        "type": "object",
+        "properties": {
+          "details": {
+            "type": "object",
+            "description": "Object details to update",
+            "additionalProperties": true,
+            "example": {
+              "name": "Updated Note Title",
+              "description": "Updated description"
+            }
+          }
+        },
+        "required": ["details"]
+      },
+      "UpdateObjectResponse": {
+        "type": "object",
+        "properties": {
+          "event": {
+            "type": "object",
+            "description": "Update event information",
+            "additionalProperties": true
+          }
+        }
+      },
+      "DeleteObjectResponse": {
+        "type": "object",
+        "properties": {
+          "event": {
+            "type": "object",
+            "description": "Delete event information",
+            "additionalProperties": true
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error message"
+          },
+          "code": {
+            "type": "integer",
+            "description": "Error code"
+          }
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Bad request",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Resource not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "ServerError": {
+        "description": "Internal server error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Health",
+      "description": "Health check operations"
+    },
+    {
+      "name": "Application",
+      "description": "Application information operations"
+    },
+    {
+      "name": "Workspaces",
+      "description": "Workspace management operations"
+    },
+    {
+      "name": "Objects",
+      "description": "Object CRUD operations"
+    }
+  ]
+}
